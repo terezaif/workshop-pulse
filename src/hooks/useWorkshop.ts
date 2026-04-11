@@ -42,6 +42,31 @@ export function useWorkshop(workshopId?: string) {
   return { workshop, sections, loading, error };
 }
 
+export function useWorkshops() {
+  const [workshops, setWorkshops] = useState<Workshop[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const { data, error: err } = await supabase
+          .from('workshops')
+          .select('*')
+          .order('created_at', { ascending: false });
+        if (err) throw err;
+        setWorkshops(data ?? []);
+      } catch (err: unknown) {
+        setError(err instanceof Error ? err.message : 'Failed to load workshops');
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, []);
+
+  return { workshops, loading, error };
+}
+
 export function useWorkshopByCode(joinCode?: string) {
   const [workshop, setWorkshop] = useState<Workshop | null>(null);
   const [sections, setSections] = useState<Section[]>([]);
