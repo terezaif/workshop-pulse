@@ -47,11 +47,9 @@ export default function Landing() {
           </div>
         </div>
 
-        <div className="animate-in stagger-3 mt-xl">
-          <button className="btn btn-ghost" onClick={() => navigate('/create')}>
-            I'm a trainer — Create Workshop
-          </button>
-        </div>
+        <p className="text-sm text-muted animate-in stagger-3 mt-xl">
+          Ask your trainer for the 6-character join code to get started.
+        </p>
       </section>
     </div>
   );

@@ -1,7 +1,14 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import QRCode from 'react-qr-code';
 import { useCreateWorkshop } from '../hooks/useWorkshop';
 import { generateJoinCode } from '../utils/joinCode';
+
+interface CreatedWorkshop {
+  id: string;
+  join_code: string;
+  title: string;
+}
 
 export default function TrainerSetup() {
   const navigate = useNavigate();
@@ -9,6 +16,8 @@ export default function TrainerSetup() {
   const [title, setTitle] = useState('');
   const [trainerName, setTrainerName] = useState('');
   const [sections, setSections] = useState(['']);
+  const [created, setCreated] = useState<CreatedWorkshop | null>(null);
+  const [copied, setCopied] = useState(false);
 
   const addSection = () => setSections((prev) => [...prev, '']);
   const removeSection = (i: number) => setSections((prev) => prev.filter((_, idx) => idx !== i));
@@ -23,9 +32,90 @@ export default function TrainerSetup() {
     const joinCode = generateJoinCode();
     const ws = await create(title.trim(), trainerName.trim(), joinCode, validSections);
     if (ws) {
-      navigate(`/dashboard/${ws.id}`);
+      setCreated({ id: ws.id, join_code: ws.join_code, title: ws.title });
     }
   };
+
+  const surveyUrl = created
+    ? `${window.location.origin}/survey/${created.join_code}`
+    : '';
+
+  const handleCopyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(surveyUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Fallback for insecure contexts
+      const input = document.createElement('input');
+      input.value = surveyUrl;
+      document.body.appendChild(input);
+      input.select();
+      document.execCommand('copy');
+      document.body.removeChild(input);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
+  if (created) {
+    return (
+      <div className="page-container" style={{ maxWidth: 540, textAlign: 'center' }}>
+        <div className="animate-in">
+          <span style={{ fontSize: '3rem' }}>🎉</span>
+          <h2 className="mt-sm mb-sm">Workshop Created!</h2>
+          <p className="text-muted mb-lg">{created.title}</p>
+        </div>
+
+        <div className="card animate-in stagger-1" style={{ padding: 'var(--space-xl)' }}>
+          <p className="text-sm text-muted mb-md">
+            Share this with your participants
+          </p>
+
+          <div style={{
+            background: 'white',
+            padding: 'var(--space-lg)',
+            borderRadius: 'var(--radius-lg)',
+            display: 'inline-block',
+            marginBottom: 'var(--space-lg)',
+          }}>
+            <QRCode value={surveyUrl} size={200} level="M" />
+          </div>
+
+          <div className="mb-md">
+            <span className="badge badge-purple" style={{ fontSize: '1.6rem', padding: '0.5em 1em', letterSpacing: '0.15em' }}>
+              {created.join_code}
+            </span>
+          </div>
+
+          <div className="input-group mb-md">
+            <label htmlFor="share-url" className="text-sm text-muted">Direct Link</label>
+            <div className="flex gap-sm">
+              <input
+                id="share-url"
+                className="input w-full"
+                value={surveyUrl}
+                readOnly
+                style={{ fontSize: '0.85rem' }}
+              />
+              <button className="btn btn-secondary btn-sm" onClick={handleCopyLink}>
+                {copied ? '✓ Copied' : 'Copy'}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex-col gap-sm mt-lg animate-in stagger-2">
+          <button
+            className="btn btn-primary btn-lg w-full"
+            onClick={() => navigate(`/dashboard/${created.id}`)}
+          >
+            Open Live Dashboard →
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="page-container" style={{ maxWidth: 640 }}>
@@ -102,7 +192,7 @@ export default function TrainerSetup() {
           className="btn btn-primary btn-lg w-full animate-in stagger-3"
           disabled={loading}
         >
-          {loading ? 'Creating...' : 'Create Workshop & Open Dashboard'}
+          {loading ? 'Creating...' : 'Create Workshop'}
         </button>
       </form>
     </div>
